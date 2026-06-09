@@ -2,6 +2,7 @@ package com.example.tasktracker.controller;
 
 import com.example.tasktracker.model.TaskItem;
 import com.example.tasktracker.repository.TaskRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,4 +45,15 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskItem> updateTask(@PathVariable Long id, @Valid @RequestBody TaskItem updatedTask){
+        return taskRepository.findById(id)
+                .map(task -> {
+                    task.setTitle(updatedTask.getTitle());
+                    task.setDone(updatedTask.getDone());
+                    TaskItem savedTask = taskRepository.save(task);
+                    return ResponseEntity.ok(savedTask);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

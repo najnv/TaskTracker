@@ -28,8 +28,25 @@ button{
 }
 
 .task-item{
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding:12px 0;
     border-bottom: 1px solid #ddd;
+}
+
+.task-item input[type="text"],
+.task-item input:not([type]){
+    padding:8px}
+
+.task-item button{
+    border:none;
+    border-radius:6px;
+    background: #2f75b5;
+    color:white;
+}
+
+.task-item button:last-child{
+    background: #b52f2f;
 }
