@@ -1,11 +1,15 @@
-# TaskTracker
+# Task Tracker
+Учебное веб-приложения для управления задачами.
 
-## Description
+## Технологии
+- Java 21;
+- SpringBoot;
+- Spring Data JPA;
+- SQLite;
+- HTML / CSS / JavaScript
 
-TaskTracker - это веб-приложение для управления задачами (добавление, просмотр, редактирование, удаление)
-## Technologies
-Java;
-SpringBoot;
-SQLite;
-Spring Data JPA;
-HTML/CSS/JS.
+## Запуск
+1. Склонировать репозиторий
+2. Открыть проект в Intellij IDEA
+3. Запустить Spring Boot приложение
+4. Открыть http://localhost:8080/index.html
