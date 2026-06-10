@@ -6,7 +6,7 @@ async function loadTasks(){
 
     const taskList = document.getElementById('taskList');
     taskList.innerHTML = '';
-    tasks.forEach(task=> {
+    tasks.forEach(task => {
         const li = document.createElement('li');
         li.className='task-item';
         li.innerHTML= `
