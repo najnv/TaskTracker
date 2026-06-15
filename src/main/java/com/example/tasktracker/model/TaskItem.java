@@ -1,5 +1,6 @@
 package com.example.tasktracker.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class TaskItem {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonProperty("subtasks")
     private List<SubTask> subTasks = new ArrayList<>();
 
     @ElementCollection

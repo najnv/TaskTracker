@@ -78,7 +78,7 @@ public class TaskController {
     @PatchMapping("/{taskId}/subtasks/{subTaskId}/toggle")
     public ResponseEntity<SubTask> toggleSubTask(@PathVariable Long taskId,@PathVariable Long subTaskId) {
         return subTaskRepository.findById(subTaskId)
-                .filter(subTask -> subTask.getTask().getId().equals(taskId))
+                .filter(subTask -> subTask.getTask().getId().equals(taskId)) //
                 .map(subTask->{
                     subTask.setDone(!subTask.isDone());
                     return ResponseEntity.ok(subTaskRepository.save(subTask));
@@ -99,7 +99,6 @@ public class TaskController {
 
     @PutMapping("/{id}/tags")
     public ResponseEntity<TaskItem> updateTags(@PathVariable Long id, @RequestBody Set<String> tags) {
-
         return taskRepository.findById(id)
                 .map(task->{
                     task.setTags(tags);
