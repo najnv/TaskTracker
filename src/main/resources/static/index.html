@@ -13,6 +13,14 @@
         <input id="task-tags" type="text" placeholder="Теги через запятую">
         <button type="submit">Добавить</button>
     </form>
+    <div class="sort-controls">
+        <label>Сортировать:</label>
+        <select id = "sortBy">
+            <option value = "createdAt"> По дате (новые) </option>
+            <option value = "title"> По алфавиту </option>
+        </select>
+        <button id = "sortToggle" type = button>↑↓</button>
+    </div>
     <ul id="task-list"></ul>
 </main>
 <script src="app.js"> </script>

@@ -55,6 +55,24 @@ body{
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
 }
 
+.task-item.done {
+    background-color: #e6f7e6;
+    border-left: 5px solid #28a745;
+    border-radius: 12px;
+    transition: background-color 0.2s, border-color 0.3s;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.task-item.done .task-controls input[type="text"]{
+    text-decoration: line-through;
+    color: #155724;
+    background-color: #f0faf0;
+}
+
+.task-item.done .task-controls input[type="checkbox"] {
+    accent-color: #28a745;
+}
+
 .task-controls {
     display: flex;
     align-items: center;
@@ -132,11 +150,6 @@ body{
     color: #a71d2a;
 }
 
-.done{
-    text-decoration: line-through;
-    color:#777;
-}
-
 .tags{
     margin:8px 0;
 }
@@ -149,6 +162,7 @@ body{
     border-radius: 12px;
     margin-right: 6px;
     font-size: 13px;
+    cursor: move;
 }
 
 .subtasks {
@@ -175,6 +189,63 @@ body{
 
 .subtasks li.done {
     text-decoration: line-through;
-    color: #6c757d;
+    color: #155724;
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+    font-weight: 500;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.sort-controls{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 20px 0;
+    font-size: 14px;
+    flex-wrap: wrap;
+}
+
+.sort-controls label{
+    font-weight: 600;
+    color:#2c3e50;
+}
+
+.sort-controls select{
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.sort-controls select:hover{
+    border-color:#2c7da0;
+}
+
+.sort-controls select:focus{
+    border-color:#2c7da0;
+    box-shadow: 0 0 0 2px rgba(44,125,160,0.2);
+}
+
+.sort-controls button{
     background: #e9ecef;
+    border: none;
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor:pointer;
+    transition: all 0.2s;
+    color: #1e2a3a;
+}
+
+.sort-controls button:hover{
+    background:#dee2e6;
+    transform: scale(1.02);
 }

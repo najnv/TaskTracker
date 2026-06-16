@@ -5,6 +5,7 @@ import com.example.tasktracker.model.TaskItem;
 import com.example.tasktracker.repository.SubTaskRepository;
 import com.example.tasktracker.repository.TaskRepository;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +25,12 @@ public class TaskController {
     }
 
     @GetMapping
-    public List <TaskItem> getAllTasks() {
-        return taskRepository.findAll();
+    public List <TaskItem> getAllTasks(
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String order) {
+        Sort.Direction direction = order.equals("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, sortBy);
+        return taskRepository.findAll(sort);
     }
 
     @PostMapping
@@ -78,7 +83,7 @@ public class TaskController {
     @PatchMapping("/{taskId}/subtasks/{subTaskId}/toggle")
     public ResponseEntity<SubTask> toggleSubTask(@PathVariable Long taskId,@PathVariable Long subTaskId) {
         return subTaskRepository.findById(subTaskId)
-                .filter(subTask -> subTask.getTask().getId().equals(taskId)) //
+                .filter(subTask -> subTask.getTask().getId().equals(taskId))
                 .map(subTask->{
                     subTask.setDone(!subTask.isDone());
                     return ResponseEntity.ok(subTaskRepository.save(subTask));

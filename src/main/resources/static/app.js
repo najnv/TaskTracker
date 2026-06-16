@@ -4,11 +4,18 @@ const titleInput = document.getElementById('task-title');
 const tagsInput=document.getElementById('task-tags');
 const taskList=document.getElementById('task-list');
 
+let currentSortBy=`createdAt`;
+let currentOrder=`desc`;
+
 function renderTask(task){
 
     const li = document.createElement('li');
     li.className='task-item';
     li.dataset.id = task.id;
+
+    if (task.done){
+        li.classList.add('done');
+    }
 
     const controls = document.createElement(`div`);
     controls.className=`task-controls`;
@@ -16,7 +23,7 @@ function renderTask(task){
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = task.done;
-    checkbox.onchange = () => saveTask(task.id);
+    checkbox.onchange = () => saveTask(task.id, task.tags);
     controls.appendChild(checkbox);
 
     const titleInput = document.createElement('input');
@@ -30,7 +37,7 @@ function renderTask(task){
 
     const saveBtn = document.createElement(`button`);
     saveBtn.textContent = `Сохранить`;
-    saveBtn.onclick = () => saveTask(task.id);
+    saveBtn.onclick = () => saveTask(task.id,task.tags);
     controls.appendChild(saveBtn);
 
     const deleteBtn = document.createElement(`button`);
@@ -80,21 +87,11 @@ function renderTask(task){
 
 
 async function loadTasks(){
-    const response = await fetch(API_URL);
+    const response = await fetch(`${API_URL}?sortBy=${currentSortBy}&order=${currentOrder}`);
     const tasks = await response.json();
 
-    // const taskList = document.getElementById('taskList');
     taskList.innerHTML = '';
     tasks.forEach(task => {
-        /*const li = document.createElement('li');
-        li.className='task-item';
-        li.innerHTML= `
-            <input type="checkbox"${task.done ? 'checked' : ''}
-            onchange="saveTask(${task.id})">
-            <input id="task-title-${task.id}" value="${task.title}">
-            <button onclick="saveTask(${task.id})">Сохранить</button>
-            <button onclick="deleteTask(${task.id})">Удалить</button>
-            `;*/
         taskList.appendChild(renderTask(task));
     });
 }
@@ -147,7 +144,7 @@ async function deleteTask(id){
     await loadTasks();
 }
 
-async function saveTask(id) {
+async function saveTask(id, tags) {
     const li = document.querySelector(`li[data-id='${id}']`);
     if (!li)
         return;
@@ -169,7 +166,7 @@ async function saveTask(id) {
     await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title: title, done: done})
+        body: JSON.stringify({title: title, done: done, tags:tags})
     });
     await loadTasks();
 }
@@ -197,5 +194,18 @@ async function toggleSubTask(taskId, subTaskId){
 
     loadTasks();
 }
+
+const sortBySelect = document.getElementById(`sortBy`);
+const sortToggleBtn=document.getElementById(`sortToggle`);
+
+sortBySelect.addEventListener(`change`, () => {
+    currentSortBy=sortBySelect.value;
+    loadTasks();
+})
+
+sortToggleBtn.addEventListener(`click`, () => {
+    currentOrder = currentOrder === `desc` ? `asc` : `desc`;
+    loadTasks();
+})
 
 loadTasks();
