@@ -29,7 +29,15 @@ public class TaskItem {
     @JsonProperty("subtasks")
     private List<SubTask> subTasks = new ArrayList<>();
 
-    @ElementCollection
+    /*@ElementCollection
     @CollectionTable(name = "task_tags", joinColumns = @JoinColumn(name = "task_id"))
-    private Set<String> tags = new HashSet<>();
+    private Set<String> tags = new HashSet<>();*/
+
+    @ManyToMany
+    @JoinTable(
+            name = "task_tag",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 }

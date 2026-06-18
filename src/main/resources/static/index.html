@@ -8,9 +8,16 @@
 <body>
 <main class="container">
     <h1>Task Tracker</h1>
+    <div class="tag-management">
+        <h3>Теги</h3>
+        <div class="tag-form">
+            <input id="new-tag-input" type="text" placeholder="Название тега">
+            <button id="add-tag-btn" type="button">Добавить</button>
+        </div>
+        <ul id="tag-list"></ul>
+    </div>
     <form id="task-form">
         <input id="task-title" type="text" placeholder="Введите задачу">
-        <input id="task-tags" type="text" placeholder="Теги через запятую">
         <button type="submit">Добавить</button>
     </form>
     <div class="sort-controls">

@@ -188,12 +188,35 @@ body{
 }
 
 .subtasks li.done {
-    text-decoration: line-through;
     color: #155724;
     background-color: #d4edda;
     border-left: 4px solid #28a745;
     font-weight: 500;
     transition: background-color 0.3s, border-color 0.3s;
+}
+.subtasks li .done{
+    text-decoration: line-through
+}
+
+.subtasks li .delete-subtask-btn{
+    margin-left:auto;
+}
+
+.delete-subtask-btn{
+    background: none;
+    border:none;
+    color:#dc3545;
+    font-size: 14px;
+    cursor:pointer;
+    padding: 0 4px;
+    margin-left:auto;
+    line-height: 1;
+    transition: color 0.2s;
+    text-decoration: none;
+}
+
+.delete-subtask-btn:hover{
+    color:#a71d2a;
 }
 
 .sort-controls{
@@ -248,4 +271,99 @@ body{
 .sort-controls button:hover{
     background:#dee2e6;
     transform: scale(1.02);
+}
+
+.tag-management {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.tag-management h3 {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.tag-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.tag-form input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.tag-form button {
+    padding: 10px 20px;
+    background: #2c7da0;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.tag-form button:hover {
+    background: #1f5e7a;
+}
+
+#tag-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+#tag-list li {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 30px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+#tag-list li:hover {
+    border-color: #2c7da0;
+}
+
+#tag-list .tag-name {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+#tag-list .tag-name:hover {
+    background: #e9ecef;
+}
+
+#tag-list .tag-name.editing {
+    background: white;
+    border: 1px solid #2c7da0;
+    outline: none;
+}
+
+#tag-list .tag-delete-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+#tag-list .tag-delete-btn:hover {
+    color: #a71d2a;
 }

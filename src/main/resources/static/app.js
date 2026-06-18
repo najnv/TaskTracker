@@ -1,8 +1,10 @@
 const API_URL = '/api/tasks';
 const form = document.getElementById('task-form');
 const titleInput = document.getElementById('task-title');
-const tagsInput=document.getElementById('task-tags');
 const taskList=document.getElementById('task-list');
+const tagList = document.getElementById('tag-list');
+const newTagInput = document.getElementById('new-tag-input');
+const addTagBtn=document.getElementById('add-tag-btn')
 
 let currentSortBy=`createdAt`;
 let currentOrder=`desc`;
@@ -23,7 +25,17 @@ function renderTask(task){
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = task.done;
-    checkbox.onchange = () => saveTask(task.id, task.tags);
+    checkbox.addEventListener('change', function(){
+        const taskId = this.closest('li').dataset.id;
+        const done = this.checked;
+        saveTask(taskId,done);
+    })
+    /*checkbox.onchange = function (){
+        console.log('Checkbox changed, chacked: ', this.checked);
+        const taskId = this.closest('li').dataset.id;
+        saveTask(taskId);
+    }*/
+    /*checkbox.onchange = () => saveTask(task.id);*/
     controls.appendChild(checkbox);
 
     const titleInput = document.createElement('input');
@@ -37,7 +49,14 @@ function renderTask(task){
 
     const saveBtn = document.createElement(`button`);
     saveBtn.textContent = `Сохранить`;
-    saveBtn.onclick = () => saveTask(task.id,task.tags);
+    saveBtn.addEventListener('click', function(){
+        const li = this.closest('li');
+        const taskId = li.dataset.id;
+        const checkbox = li.querySelector('input[type="checkbox"]');
+        const done = checkbox.checked;
+        saveTask(taskId, done);
+    });
+    /*saveBtn.onclick = () => saveTask(task.id);*/
     controls.appendChild(saveBtn);
 
     const deleteBtn = document.createElement(`button`);
@@ -47,18 +66,12 @@ function renderTask(task){
 
     li.appendChild(controls);
 
-    /*const title = document.createElement('strong');
-    title.textContent = task.title;
-    if (task.done) {
-        title.classList.add('done');
-    }*/
-
     const tags = document.createElement('div');
     tags.className='tags';
     (task.tags || []).forEach(tag=>{
         const span = document.createElement('span');
         span.className='tag';
-        span.textContent= '#' + tag;
+        span.textContent= '#' + (tag.name||tag);
         tags.appendChild(span);
     });
     li.appendChild(tags);
@@ -66,11 +79,29 @@ function renderTask(task){
     const subList = document.createElement('ul');
     subList.className = 'subtasks';
     (task.subtasks || []).forEach(subTask=>{
+
         const item = document.createElement('li');
-        item.textContent = subTask.title;
-        if(subTask.done){
-            item.classList.add('done');
+
+        if (subTask.done){
+            item.classList.add('done')
         }
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = subTask.title;
+        if(subTask.done){
+            textSpan.classList.add('done');
+        }
+        item.appendChild(textSpan);
+
+        const deleteSubBtn = document.createElement('button');
+        deleteSubBtn.textContent = 'Удалить';
+        deleteSubBtn.className = 'delete-subtask-btn';
+        deleteSubBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteSubTask(task.id,subTask.id);
+        };
+        item.appendChild(deleteSubBtn);
+
         item.onclick = () => toggleSubTask(task.id, subTask.id);
         subList.appendChild(item);
     });
@@ -100,10 +131,6 @@ async function loadTasks(){
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const title = titleInput.value.trim();
-    const tags = tagsInput.value
-        .split(',')
-        .map(tag=>tag.trim())
-        .filter(tag=>tag.length > 0);
 
     if (!title){
         alert ('Введите название задачи');
@@ -113,10 +140,9 @@ form.addEventListener('submit', async (event) => {
     await fetch(API_URL,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({title, done: false, tags})
+        body: JSON.stringify({title, done: false})
     })
     titleInput.value = '';
-    tagsInput.value = '';
     await loadTasks();
 });
 
@@ -144,30 +170,28 @@ async function deleteTask(id){
     await loadTasks();
 }
 
-async function saveTask(id, tags) {
+async function saveTask(id, done) {
     const li = document.querySelector(`li[data-id='${id}']`);
     if (!li)
         return;
 
     const titleInput = document.getElementById(`task-title-${id}`);
     const title = titleInput ? titleInput.value.trim() : '';
-
-    //const title = titleInput.value.trim();
-    //const checkbox = titleInput.parentElement.querySelector('input[type=checkbox]');
-    const checkbox = li.querySelector('input[type="checkbox"]');
-    //const done = checkbox.checked;
-    const done = checkbox ? checkbox.checked : false;
+    /*const checkbox = li.querySelector('input[type="checkbox"]');
+    const done = checkbox ? checkbox.checked : false;*/
 
     if (!title) {
         alert('Название задачи не должно быть пустым');
         return;
     }
 
+    console.log('Sending done: ', done)
     await fetch(`${API_URL}/${id}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title: title, done: done, tags:tags})
+        body: JSON.stringify({title, done})
     });
+
     await loadTasks();
 }
 
@@ -185,6 +209,13 @@ async function addSubTask(taskId){
     });
 
     loadTasks();
+}
+
+async function deleteSubTask(taskId, subTaskId){
+    await fetch(`${API_URL}/${taskId}/subtasks/${subTaskId}`, {
+        method:'DELETE'
+    })
+    await loadTasks();
 }
 
 async function toggleSubTask(taskId, subTaskId){
@@ -209,3 +240,100 @@ sortToggleBtn.addEventListener(`click`, () => {
 })
 
 loadTasks();
+
+async function loadTags(){
+    const response = await fetch('/api/tags');
+    const tags = await response.json();
+    tagList.innerHTML ='';
+    tags.forEach(tag=>{
+        const li = document.createElement('li');
+        li.dataset.id = tag.id;
+
+        const nameSpan=document.createElement('span');
+        nameSpan.className='tag-name';
+        nameSpan.textContent=tag.name;
+        nameSpan.addEventListener('dblclick', () => enableTagEditing(nameSpan,tag.id))
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className='tag-delete-btn';
+        deleteBtn.textContent='✕';
+        deleteBtn.onclick = () => deleteTag(tag.id);
+
+        li.appendChild(nameSpan);
+        li.appendChild(deleteBtn);
+        tagList.appendChild(li);
+    });
+}
+
+async function createTag(){
+    const name = newTagInput.value.trim();
+    if(!name) return;
+    await fetch('/api/tags',{
+        method: 'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name})
+    });
+    newTagInput.value = '';
+    await loadTags();
+}
+
+async function updateTag(id, name) {
+    await fetch(`/api/tags/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+}
+
+function  enableTagEditing(span, tagId){
+    const currentName = span.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentName;
+    input.className = 'tag-name editing';
+    span.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const save = async () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            await updateTag(tagId, newName);
+        }
+        await loadTags();
+    };
+
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            input.blur();
+        } else if (e.key === 'Escape') {
+            const span = document.createElement('span');
+            span.className = 'tag-name';
+            span.textContent = currentName;
+            span.addEventListener('dblclick', () => enableTagEditing(span, tagId));
+            input.replaceWith(span);
+            loadTags();
+        }
+    });
+
+}
+
+async function deleteTag(id) {
+    if (!confirm('Удалить тег?')) return;
+    await fetch(`/api/tags/${id}`, {
+        method: 'DELETE'
+    });
+    await loadTags();
+}
+
+addTagBtn.addEventListener('click', createTag);
+
+/*async function removeTagFromTask(taskId, tagId) {
+    await fetch(`/api/tasks/${taskId}/tags/remove/${tagId}`, {
+        method: 'DELETE'
+    });
+    loadTasks();
+}*/
+
+loadTags();

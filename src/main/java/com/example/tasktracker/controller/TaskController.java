@@ -1,14 +1,18 @@
 package com.example.tasktracker.controller;
 
 import com.example.tasktracker.model.SubTask;
+import com.example.tasktracker.model.Tag;
 import com.example.tasktracker.model.TaskItem;
 import com.example.tasktracker.repository.SubTaskRepository;
+import com.example.tasktracker.repository.TagRepository;
 import com.example.tasktracker.repository.TaskRepository;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -18,10 +22,12 @@ public class TaskController {
 
     private final TaskRepository taskRepository;
     private final SubTaskRepository subTaskRepository;
+    private final TagRepository tagRepository;
 
-    public TaskController(TaskRepository taskRepository, SubTaskRepository subTaskRepository) {
+    public TaskController(TaskRepository taskRepository, SubTaskRepository subTaskRepository, TagRepository tagRepository) {
         this.taskRepository = taskRepository;
         this.subTaskRepository = subTaskRepository;
+        this.tagRepository = tagRepository;
     }
 
     @GetMapping
@@ -57,12 +63,13 @@ public class TaskController {
 
     @PutMapping("/{id}")
     public ResponseEntity<TaskItem> updateTask(@PathVariable Long id, @Valid @RequestBody TaskItem updatedTask){
+        System.out.println("Updating task " + id + " with done=" + updatedTask.isDone() + ", title =" + updatedTask.getTitle());
         return taskRepository.findById(id)
                 .map(task -> {
                     task.setTitle(updatedTask.getTitle());
                     task.setDone(updatedTask.isDone());
-                    task.setTags(updatedTask.getTags());
                     TaskItem savedTask = taskRepository.save(task);
+                    System.out.println("SavedTask "+ savedTask.getTitle() + " with done=" + savedTask.isDone());
                     return ResponseEntity.ok(savedTask);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -103,9 +110,10 @@ public class TaskController {
     }
 
     @PutMapping("/{id}/tags")
-    public ResponseEntity<TaskItem> updateTags(@PathVariable Long id, @RequestBody Set<String> tags) {
+    public ResponseEntity<TaskItem> setTaskTags(@PathVariable Long id, @RequestBody Set<Long> tagIds) {
         return taskRepository.findById(id)
                 .map(task->{
+                    Set<Tag> tags = new HashSet<>(tagRepository.findAllById(tagIds));
                     task.setTags(tags);
                     return ResponseEntity.ok(taskRepository.save(task));
                 })
