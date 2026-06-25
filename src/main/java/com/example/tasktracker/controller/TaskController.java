@@ -119,4 +119,14 @@ public class TaskController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @DeleteMapping("/{taskId}/tags/{tagId}")
+    public ResponseEntity<TaskItem> removeTagFromTask(@PathVariable Long taskId, @PathVariable Long tagId) {
+        return taskRepository.findById(taskId)
+                .map(task -> {
+                    task.getTags().removeIf(tag -> tag.getId().equals(tagId));
+                    return ResponseEntity.ok(taskRepository.save(task));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

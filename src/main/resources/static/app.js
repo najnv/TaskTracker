@@ -8,6 +8,7 @@ const addTagBtn=document.getElementById('add-tag-btn')
 
 let currentSortBy=`createdAt`;
 let currentOrder=`desc`;
+let isDraggingTagFromTask = false;
 
 function renderTask(task){
 
@@ -30,12 +31,6 @@ function renderTask(task){
         const done = this.checked;
         saveTask(taskId,done);
     })
-    /*checkbox.onchange = function (){
-        console.log('Checkbox changed, chacked: ', this.checked);
-        const taskId = this.closest('li').dataset.id;
-        saveTask(taskId);
-    }*/
-    /*checkbox.onchange = () => saveTask(task.id);*/
     controls.appendChild(checkbox);
 
     const titleInput = document.createElement('input');
@@ -56,7 +51,6 @@ function renderTask(task){
         const done = checkbox.checked;
         saveTask(taskId, done);
     });
-    /*saveBtn.onclick = () => saveTask(task.id);*/
     controls.appendChild(saveBtn);
 
     const deleteBtn = document.createElement(`button`);
@@ -72,9 +66,63 @@ function renderTask(task){
         const span = document.createElement('span');
         span.className='tag';
         span.textContent= '#' + (tag.name||tag);
+        span.draggable = true;
+        span.dataset.tagId = tag.id;
+        span.dataset.taskId = task.id;
+
+        span.addEventListener('dragstart', (e) =>{
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                tagId: tag.id,
+                taskId: task.id
+            }));
+            e.dataTransfer.effectAllowed = 'move';
+            isDraggingTagFromTask = true;
+            trashZone.classList.add('active');
+        });
+        span.addEventListener('dragend', () =>{
+           isDraggingTagFromTask = false;
+           trashZone.classList.remove('active');
+        });
         tags.appendChild(span);
     });
     li.appendChild(tags);
+
+    li.addEventListener('dragover', (e) => {
+        if (isDraggingTagFromTask) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        li.style.border = '2px dashed #2c7da0';
+    });
+
+    li.addEventListener('dragleave', () => {
+        li.style.border = 'none';
+    });
+
+    li.addEventListener('drop', async (e) =>{
+        if (isDraggingTagFromTask) return;
+        e.preventDefault();
+        li.style.border = 'none';
+
+        const tagId = e.dataTransfer.getData('text/plain');
+        if(!tagId) return;
+
+        const currentTagIds = task.tags.map(t=>t.id);
+
+        if (currentTagIds.includes(Number(tagId))){
+            alert('Этот тег уже привязан к задаче');
+            return;
+        }
+
+        const newTagIds = [...currentTagIds, Number(tagId)];
+
+        await fetch(`${API_URL}/${task.id}/tags`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(newTagIds)
+        });
+
+        await loadTasks();
+    });
 
     const subList = document.createElement('ul');
     subList.className = 'subtasks';
@@ -146,23 +194,6 @@ form.addEventListener('submit', async (event) => {
     await loadTasks();
 });
 
-/*async function addTask(){
-    const input = document.getElementById('taskTitle');
-    const title = input.value.trim();
-
-    if(!title){
-        alert ('Введите название задачи');
-        return;
-    }
-    await fetch(API_URL,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({title: title,done: false})
-    });
-    input.value='';
-    await loadTasks();
-}*/
-
 async function deleteTask(id){
     await fetch(`${API_URL}/${id}`, {
         method:'DELETE'
@@ -177,8 +208,6 @@ async function saveTask(id, done) {
 
     const titleInput = document.getElementById(`task-title-${id}`);
     const title = titleInput ? titleInput.value.trim() : '';
-    /*const checkbox = li.querySelector('input[type="checkbox"]');
-    const done = checkbox ? checkbox.checked : false;*/
 
     if (!title) {
         alert('Название задачи не должно быть пустым');
@@ -248,6 +277,12 @@ async function loadTags(){
     tags.forEach(tag=>{
         const li = document.createElement('li');
         li.dataset.id = tag.id;
+        li.draggable = true;
+
+        li.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', tag.id);
+            e.dataTransfer.effectAllowed = 'move';
+        })
 
         const nameSpan=document.createElement('span');
         nameSpan.className='tag-name';
@@ -267,7 +302,10 @@ async function loadTags(){
 
 async function createTag(){
     const name = newTagInput.value.trim();
-    if(!name) return;
+    if(!name) {
+        alert('Введите наазвание тега');
+        return;
+    }
     await fetch('/api/tags',{
         method: 'POST',
         headers:{'Content-Type':'application/json'},
@@ -316,7 +354,6 @@ function  enableTagEditing(span, tagId){
             loadTags();
         }
     });
-
 }
 
 async function deleteTag(id) {
@@ -328,12 +365,52 @@ async function deleteTag(id) {
 }
 
 addTagBtn.addEventListener('click', createTag);
+newTagInput.addEventListener('keydown', (e) =>{
+    if(e.key === 'Enter'){
+        e.preventDefault();
+        createTag();
+    }
+});
 
-/*async function removeTagFromTask(taskId, tagId) {
-    await fetch(`/api/tasks/${taskId}/tags/remove/${tagId}`, {
+async function removeTagFromTask(taskId, tagId) {
+    const response = await fetch(`/api/tasks/${taskId}/tags/${tagId}`, {
         method: 'DELETE'
     });
-    loadTasks();
-}*/
+
+    if (!response.ok){
+        throw new Error(`Ошибка при отвязке тега: ${response.status}`)
+    }
+}
+
+const trashZone = document.getElementById('trash-zone');
+
+
+trashZone.addEventListener('dragover', (e) =>{
+   e.preventDefault();
+   e.dataTransfer.dropEffect = 'move';
+});
+
+trashZone.addEventListener('drop', async (e) =>{
+   e.preventDefault();
+
+   const rawData = e.dataTransfer.getData('text/plain');
+   if (!rawData) return;
+
+   try{
+       const data = JSON.parse(rawData);
+       if (!data.tagId || !data.taskId) return;
+
+       await removeTagFromTask(data.taskId, data.tagId);
+       await loadTasks();
+
+   }
+   catch (error){
+       console.error('Ошибка при отвязке тега', error);
+       alert('Не удалось отвязать тег');
+   }
+
+    isDraggingTagFromTask = false;
+    trashZone.classList.remove('active');
+});
 
 loadTags();
