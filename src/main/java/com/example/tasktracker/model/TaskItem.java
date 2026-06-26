@@ -1,5 +1,6 @@
 package com.example.tasktracker.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +24,8 @@ public class TaskItem {
     @NotBlank(message = "Название задачи не должно быть пустым")
     private String title;
     private boolean done;
+
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)

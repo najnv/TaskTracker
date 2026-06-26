@@ -9,8 +9,10 @@ import com.example.tasktracker.repository.TaskRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +42,7 @@ public class TaskController {
     }
 
     @PostMapping
-    public TaskItem createTask (@RequestBody TaskItem task) {
+    public TaskItem createTask (@Valid @RequestBody TaskItem task) {
         task.setId(null);
         return taskRepository.save(task);
     }
@@ -53,9 +55,11 @@ public class TaskController {
     }
 
     @DeleteMapping ("/{id}")
-    public ResponseEntity<Void> deleteTask (@PathVariable Long id) {
-        if (!taskRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> deleteTask (@PathVariable Long id) {
+        TaskItem task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Задача не найдена"));
+        if (!task.isDone()){
+            return ResponseEntity.badRequest().body("можно удалить только выполненные задачи");
         }
         taskRepository.deleteById(id);
         return ResponseEntity.noContent().build();

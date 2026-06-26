@@ -42,6 +42,11 @@ function renderTask(task){
     }
     controls.appendChild(titleInput);
 
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'task-date';
+    dateSpan.textContent = task.createdAt || '';
+    controls.appendChild(dateSpan);
+
     const saveBtn = document.createElement(`button`);
     saveBtn.textContent = `Сохранить`;
     saveBtn.addEventListener('click', function(){
@@ -62,7 +67,13 @@ function renderTask(task){
 
     const tags = document.createElement('div');
     tags.className='tags';
-    (task.tags || []).forEach(tag=>{
+    const sortedTags = [...(task.tags || [])].sort((a,b) => {
+        const nameA = (a.name || a).toLowerCase();
+        const nameB = (b.name || b).toLowerCase();
+        return nameA.localeCompare(nameB,'ru');
+    });
+
+    (sortedTags || []).forEach(tag=>{
         const span = document.createElement('span');
         span.className='tag';
         span.textContent= '#' + (tag.name||tag);
@@ -195,9 +206,15 @@ form.addEventListener('submit', async (event) => {
 });
 
 async function deleteTask(id){
-    await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${API_URL}/${id}`, {
         method:'DELETE'
     });
+
+    if(!response.ok){
+        const errorMessage = await response.text();
+        alert(`Не удалось удалить задачу: ${errorMessage}`);
+        return;
+    }
     await loadTasks();
 }
 
@@ -362,6 +379,7 @@ async function deleteTag(id) {
         method: 'DELETE'
     });
     await loadTags();
+    await loadTasks();
 }
 
 addTagBtn.addEventListener('click', createTag);

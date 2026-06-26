@@ -1,10 +1,15 @@
 package com.example.tasktracker.controller;
 
 import com.example.tasktracker.model.Tag;
+import com.example.tasktracker.model.TaskItem;
 import com.example.tasktracker.repository.TagRepository;
+import com.example.tasktracker.repository.TaskRepository;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -13,9 +18,11 @@ import java.util.List;
 public class TagController {
 
     private final TagRepository tagRepository;
+    private final TaskRepository taskRepository;
 
-    public TagController(TagRepository tagRepository){
+    public TagController(TagRepository tagRepository, TaskRepository taskRepository) {
         this.tagRepository = tagRepository;
+        this.taskRepository = taskRepository;
     }
 
     @GetMapping
@@ -31,11 +38,15 @@ public class TagController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> deleteTag(@PathVariable Long id){
-        if(!tagRepository.existsById(id)){
-            return ResponseEntity.notFound().build();
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Тег не найден"));
+        for(TaskItem task : tag.getTasks()){
+            task.getTags().remove(tag);
+            taskRepository.save(task);
         }
-        tagRepository.deleteById(id);
+        tagRepository.delete(tag);
         return ResponseEntity.noContent().build();
     }
 
