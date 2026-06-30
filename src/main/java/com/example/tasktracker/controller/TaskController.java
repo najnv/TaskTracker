@@ -1,12 +1,11 @@
 package com.example.tasktracker.controller;
 
-import com.example.tasktracker.model.SubTask;
-import com.example.tasktracker.model.Tag;
-import com.example.tasktracker.model.TaskItem;
+import com.example.tasktracker.enums.ArchiveRetention;
+import com.example.tasktracker.model.*;
+import com.example.tasktracker.repository.ArchivedTaskRepository;
 import com.example.tasktracker.repository.SubTaskRepository;
 import com.example.tasktracker.repository.TagRepository;
 import com.example.tasktracker.repository.TaskRepository;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -14,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,11 +25,13 @@ public class TaskController {
     private final TaskRepository taskRepository;
     private final SubTaskRepository subTaskRepository;
     private final TagRepository tagRepository;
+    private final ArchivedTaskRepository archivedTaskRepository;
 
-    public TaskController(TaskRepository taskRepository, SubTaskRepository subTaskRepository, TagRepository tagRepository) {
+    public TaskController(TaskRepository taskRepository, SubTaskRepository subTaskRepository, TagRepository tagRepository, ArchivedTaskRepository archivedTaskRepository) {
         this.taskRepository = taskRepository;
         this.subTaskRepository = subTaskRepository;
         this.tagRepository = tagRepository;
+        this.archivedTaskRepository = archivedTaskRepository;
     }
 
     @GetMapping
@@ -54,7 +56,7 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping ("/{id}")
+    /*@DeleteMapping ("/{id}")
     public ResponseEntity<?> deleteTask (@PathVariable Long id) {
         TaskItem task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Задача не найдена"));
@@ -63,6 +65,44 @@ public class TaskController {
         }
         taskRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }*/
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
+        TaskItem task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Задача не найдена"));
+        if (!task.isDone()){
+            return ResponseEntity.badRequest().body("можно удалить только выполненные задачи");
+        }
+
+        ArchivedTask archivedTask = new ArchivedTask();
+
+        archivedTask.setTitle(task.getTitle());
+        archivedTask.setDone(task.isDone());
+        archivedTask.setCreatedAt(task.getCreatedAt());
+
+        LocalDateTime now = LocalDateTime.now();
+        archivedTask.setDeletedAt(now);
+        archivedTask.setRetention(ArchiveRetention.HOUR);
+        archivedTask.setExpiresAt(archivedTask.getRetention().calculateExpiration(now));
+
+        archivedTask.setTags(new HashSet<>(task.getTags()));
+
+        for (SubTask sub : task.getSubTasks()) {
+
+            ArchivedSubTask archivedSub = new ArchivedSubTask();
+
+            archivedSub.setTitle(sub.getTitle());
+            archivedSub.setDone(sub.isDone());
+
+            archivedSub.setTask(archivedTask);
+
+            archivedTask.getSubTasks().add(archivedSub);
+        }
+
+        archivedTaskRepository.save(archivedTask);
+        taskRepository.delete(task);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}")

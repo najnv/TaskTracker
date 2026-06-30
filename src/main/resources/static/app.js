@@ -1,10 +1,17 @@
 const API_URL = '/api/tasks';
+const ARCHIVE_URL = '/api/archive';
 const form = document.getElementById('task-form');
 const titleInput = document.getElementById('task-title');
 const taskList=document.getElementById('task-list');
 const tagList = document.getElementById('tag-list');
 const newTagInput = document.getElementById('new-tag-input');
-const addTagBtn=document.getElementById('add-tag-btn')
+const addTagBtn=document.getElementById('add-tag-btn');
+const archiveBtn = document.getElementById('archive-btn');
+const archivePanel = document.getElementById('archive-panel');
+const archiveOverlay = document.getElementById('archive-overlay');
+const closeArchiveBtn = document.getElementById('close-archive');
+const archiveList = document.getElementById('archive-list');
+const clearArchiveBtn = document.getElementById('clear-archive-btn');
 
 let currentSortBy=`createdAt`;
 let currentOrder=`desc`;
@@ -320,7 +327,7 @@ async function loadTags(){
 async function createTag(){
     const name = newTagInput.value.trim();
     if(!name) {
-        alert('Введите наазвание тега');
+        alert('Введите название тега');
         return;
     }
     await fetch('/api/tags',{
@@ -430,5 +437,265 @@ trashZone.addEventListener('drop', async (e) =>{
     isDraggingTagFromTask = false;
     trashZone.classList.remove('active');
 });
+
+async function openArchive(){
+    await loadArchive();
+    archivePanel.classList.add('active');
+    archiveOverlay.classList.add('active');
+}
+
+function closeArchive(){
+    archivePanel.classList.remove('active');
+    archiveOverlay.classList.remove('active');
+}
+
+archiveBtn.addEventListener('click', openArchive);
+
+closeArchiveBtn.addEventListener('click', closeArchive);
+
+archiveOverlay.addEventListener('click', closeArchive);
+
+async function loadArchive(){
+    const response = await fetch(ARCHIVE_URL);
+    const archivedTasks = await response.json();
+    archiveList.innerHTML = '';
+    archivedTasks.forEach(task =>{
+       archiveList.appendChild(renderArchiveItem(task));
+    });
+}
+
+function renderArchiveItem(task){
+    const card = document.createElement('div');
+    card.className = 'archive-card';
+
+    const title = document.createElement('h3');
+    title.textContent = task.title;
+    card.appendChild(title);
+
+    if(task.tags && task.tags.length > 0){
+
+        const tagContainer = document.createElement('div');
+        tagContainer.className = 'archive-tags';
+
+        task.tags.forEach(tag=>{
+
+            const span = document.createElement('span');
+            span.className = 'archive-tag';
+            span.textContent = '#' + tag.name;
+
+            tagContainer.appendChild(span);
+        });
+        card.appendChild(tagContainer);
+    }
+
+    if(task.subTasks && task.subTasks.length){
+
+        const subtitle = document.createElement('p');
+        subtitle.innerHTML = '<strong>Подзадачи</strong>';
+        card.appendChild(subtitle);
+
+        const ul = document.createElement('ul');
+        ul.className = 'archive-subtasks';
+
+        task.subTasks.forEach(sub=>{
+
+            const li = document.createElement('li');
+            li.textContent = sub.title;
+
+            if(sub.done){
+                li.classList.add('done');
+            }
+
+            ul.appendChild(li);
+        });
+        card.appendChild(ul);
+    }
+
+    const deleted = document.createElement('p');
+    deleted.innerHTML = `<strong>Удалена:</strong> ${formatDate(task.deletedTimestamp)}`;
+    card.appendChild(deleted);
+
+    const expires = document.createElement('p');
+    expires.innerHTML = `<strong>Удалится через:</strong> ${task.retention === 'NEVER' ? 'никогда' : formatRemainingTime(task.expiresTimestamp)}`;
+
+    card.appendChild(expires);
+
+    if(task.retention !== "NEVER"){
+
+        const exact = document.createElement("small");
+
+        exact.className = "archive-exact-date";
+
+        exact.textContent = "До " + formatDate(task.expiresTimestamp);
+
+        card.appendChild(exact);
+
+    }
+
+    const select = document.createElement('select');
+    [
+        'HOUR',
+        'DAY',
+        'WEEK',
+        'MONTH',
+        'NEVER'
+    ].forEach(value => {
+       const option = document.createElement('option');
+       option.value = value;
+       option.textContent = {
+           HOUR:'1 час',
+           DAY:'1 день',
+           WEEK:'1 неделя',
+           MONTH:'1 месяц',
+           NEVER:'Не удалять'
+       }[value];
+       option.selected = value === task.retention;
+       select.appendChild(option);
+    });
+
+    select.addEventListener('change', async () =>{
+        await changeRetention(task.id, select.value);
+    });
+
+    const label = document.createElement('label');
+    label.textContent = 'Срок хранения';
+    card.appendChild(label);
+    card.appendChild(select)
+
+    const buttons = document.createElement('div');
+    buttons.className = 'archive-buttons';
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.textContent = '↩ Восстановить';
+    buttons.appendChild(restoreBtn);
+
+    restoreBtn.addEventListener('click', async () =>{
+        await restoreTask(task.id);
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '🗑 Удалить';
+    buttons.appendChild(deleteBtn);
+
+    deleteBtn.addEventListener('click', async () =>{
+        await deleteArchivedTask(task.id);
+    });
+
+    card.appendChild(buttons);
+
+    return card;
+}
+
+async function changeRetention(taskId, retention){
+
+    const response = await fetch(`${ARCHIVE_URL}/${taskId}/retention`, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            retention: retention
+        })
+    });
+
+    if(!response.ok){
+        alert('Не удалось изменить срок хранения');
+        return;
+    }
+    await loadArchive();
+}
+
+async function restoreTask(taskId){
+
+    const response = await fetch(`${ARCHIVE_URL}/${taskId}/restore`,{
+        method:'POST'
+    });
+
+    if(!response.ok){
+        const errorMessage = await response.text();
+        alert(`Не удалось восстановить задачу:  ${errorMessage}`);
+        return;
+    }
+    await loadArchive();
+    await loadTasks();
+}
+
+async function deleteArchivedTask(taskId){
+
+    const response = await fetch(`${ARCHIVE_URL}/${taskId}`, {
+        method:'DELETE'
+    });
+
+    if(!response.ok){
+        const errorMessage = await response.text();
+        alert(`Не удалось удалить задачу: ${errorMessage}`);
+        return;
+    }
+
+    await loadArchive();
+}
+
+async function clearArchive(){
+
+    if(!confirm('Очистить весь архив?')){
+        return;
+    }
+
+    const response = await fetch(ARCHIVE_URL,{
+        method:'DELETE'
+    })
+
+    if(!response.ok){
+        alert('Не удалось очистить архив');
+        return;
+    }
+
+    await loadArchive();
+}
+
+clearArchiveBtn.addEventListener('click', clearArchive);
+
+
+function formatRemainingTime(expiresTimestamp) {
+
+    if (!expiresTimestamp) {
+        return 'Неизвестно';
+    }
+
+    const diff = expiresTimestamp - Date.now();
+
+    if (diff < 60000) {
+        return 'меньше минуты';
+    }
+
+    const totalMinutes = Math.floor(diff / 60000);
+
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    if (days > 0) {
+        return `${days} дн. ${hours} ч.`;
+    }
+
+    if (hours > 0) {
+        return `${hours} ч. ${minutes} мин.`;
+    }
+
+    return `${minutes} мин.`;
+}
+
+function formatDate(timestamp) {
+
+    if (!timestamp) {
+        return '';
+    }
+
+    return new Date(timestamp).toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
 
 loadTags();

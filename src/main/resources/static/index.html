@@ -7,7 +7,15 @@
 </head>
 <body>
 <main class="container">
-    <h1>Task Tracker</h1>
+    <header class = "top-bar">
+        <div class="logo">
+            <h1>Task Tracker</h1>
+            <span>Управление задачами</span>
+        </div>
+        <button id="archive-btn" class = "archive-btn">
+            Архив
+        </button>
+    </header>
     <div class="tag-management">
         <h3>Теги</h3>
         <div class="tag-form">
@@ -33,6 +41,17 @@
         <span> Перетащите сюда, чтобы удалить тег из задачи</span>
     </div>
 </main>
+<div id="archive-overlay"></div>
+<aside id="archive-panel">
+    <div class="archive-header">
+    <h2>Архив задач</h2>
+    <button id="close-archive"> ✕ </button>
+    </div>
+    <div id="archive-list"></div>
+    <div class="archive-footer">
+        <button id="clear-archive-btn"> Очистить архив </button>
+    </div>
+</aside>
 <script src="app.js"> </script>
 </body>
 </html>
