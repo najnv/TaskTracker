@@ -6,59 +6,49 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!--<main class="container">
-    <header class = "top-bar">
-        <div class="logo">
-            <h1>Task Tracker</h1>
-            <span>Управление задачами</span>
-        </div>
-        <button id="archive-btn" class = "archive-btn">
-            Архив
-        </button>
-    </header>
-    <div class="tag-management">
-        <h3>Теги</h3>
-        <div class="tag-form">
-            <input id="new-tag-input" type="text" placeholder="Название тега">
-            <button id="add-tag-btn" type="button">Добавить</button>
-        </div>
-        <ul id="tag-list"></ul>
-    </div>
-    <form id="task-form">
-        <input id="task-title" type="text" placeholder="Введите задачу">
-        <button type="submit">Добавить</button>
-    </form>
-    <div class="sort-controls">
-        <label>Сортировать:</label>
-        <select id = "sortBy">
-            <option value = "createdAt"> По дате (новые) </option>
-            <option value = "title"> По алфавиту </option>
-        </select>
-        <button id = "sortToggle" type = button>↑↓</button>
-    </div>
-    <ul id="task-list"></ul>
-    <div id="trash-zone">
-        <span> Перетащите сюда, чтобы удалить тег из задачи</span>
-    </div>
-</main>
-<div id="archive-overlay"></div>
-<aside id="archive-panel">
-    <div class="archive-header">
-    <h2>Архив задач</h2>
-    <button id="close-archive"> ✕ </button>
-    </div>
-    <div id="archive-list"></div>
-    <div class="archive-footer">
-        <button id="clear-archive-btn"> Очистить архив </button>
-    </div>
-</aside>-->
 <div class = "app">
-    <header class = "top-bar">
-        <div class = "logo">
-            <h1>Task Tracker</h1>
-            <span>Управление задачами</span>
+    <header class="top-bar">
+        <div class="top-left">
+            <div class="logo">
+                <h1>Task Tracker</h1>
+                <span>Управление задачами</span>
+            </div>
         </div>
-        <button id = "archive-btn" class = "archive-btn">Архив</button>
+        <div class="top-center">
+            <div class="header-stats">
+                <div class="header-stat">
+                    <span id="total-count">0</span>
+                    <small>Всего</small>
+                </div>
+                <div class="header-stat">
+                    <span id="active-count">0</span>
+                    <small>Активных</small>
+                </div>
+                <div class="header-stat">
+                    <span id="done-count">0</span>
+                    <small>Выполнено</small>
+                </div>
+            </div>
+        </div>
+        <div class="top-right">
+            <div class="archive-card-header">
+
+                <div class="archive-card-top">
+
+                    <div class="archive-card-info">
+                        <h3>Архив задач</h3>
+                        <p id="archiveCount">0 задач в архиве</p>
+                    </div>
+
+                    <button id="archive-btn" class="archive-btn">
+                        Открыть →
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
     </header>
     <main class = "workspace">
         <aside class = "sidebar">
@@ -117,6 +107,22 @@
         <div class="modal-actions">
             <button id="subtask-cancel">Отмена</button>
             <button id="subtask-save">Добавить</button>
+        </div>
+    </div>
+</div>
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal confirm-modal">
+        <h3 id="confirm-title">Подтверждение</h3>
+
+        <p id="confirm-text">
+            Вы уверены, что хотите выполнить это действие?
+        </p>
+
+        <div class="modal-actions">
+            <button id="confirm-cancel">Отмена</button>
+            <button id="confirm-ok" class="danger-btn">
+                Удалить
+            </button>
         </div>
     </div>
 </div>

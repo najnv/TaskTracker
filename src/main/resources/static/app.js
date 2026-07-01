@@ -16,6 +16,11 @@ const modal = document.getElementById('subtask-modal');
 const input = document.getElementById('subtask-input');
 const cancelBtn = document.getElementById('subtask-cancel');
 const saveBtn = document.getElementById('subtask-save');
+const confirmModal = document.getElementById('confirm-modal');
+const confirmTitle = document.getElementById('confirm-title');
+const confirmText = document.getElementById('confirm-text');
+const confirmOk = document.getElementById('confirm-ok');
+const confirmCancel = document.getElementById('confirm-cancel');
 
 let currentSortBy=`createdAt`;
 let currentOrder=`desc`;
@@ -320,6 +325,16 @@ function renderTask(task){
     return li;
 }
 
+function updateHeaderStats(tasks){
+
+    const total = tasks.length;
+    const done = tasks.filter(t=>t.done).length;
+    const active = total - done;
+
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('active-count').textContent = active;
+    document.getElementById('done-count').textContent = done;
+}
 
 async function loadTasks(){
     const response = await fetch(`${API_URL}?sortBy=${currentSortBy}&order=${currentOrder}`);
@@ -329,6 +344,8 @@ async function loadTasks(){
     tasks.forEach(task => {
         taskList.appendChild(renderTask(task));
     });
+    updateHeaderStats(tasks);
+    await loadArchive();
 }
 
 
@@ -685,6 +702,20 @@ async function removeTagFromTask(taskId, tagId) {
     }
 }
 
+function updateArchiveCounter(count) {
+
+    const archiveCount = document.getElementById("archiveCount");
+
+    if (count === 1) {
+        archiveCount.textContent = "1 задача в архиве";
+    } else if (count >= 2 && count <= 4) {
+        archiveCount.textContent = `${count} задачи в архиве`;
+    } else {
+        archiveCount.textContent = `${count} задач в архиве`;
+    }
+
+}
+
 async function openArchive(){
     await loadArchive();
     archivePanel.classList.add('active');
@@ -705,6 +736,7 @@ archiveOverlay.addEventListener('click', closeArchive);
 async function loadArchive(){
     const response = await fetch(ARCHIVE_URL);
     const archivedTasks = await response.json();
+    updateArchiveCounter(archivedTasks.length);
     archiveList.innerHTML = '';
     archivedTasks.forEach(task =>{
        archiveList.appendChild(renderArchiveItem(task));
@@ -861,6 +893,7 @@ async function restoreTask(taskId){
         showToast(`Не удалось восстановить задачу:  ${errorMessage}`);
         return;
     }
+
     await loadArchive();
     await loadTasks();
 }
@@ -880,9 +913,55 @@ async function deleteArchivedTask(taskId){
     await loadArchive();
 }
 
+function showConfirm(title,text){
+
+    return new Promise(resolve => {
+
+        confirmTitle.textContent = title;
+        confirmText.textContent = text;
+
+        confirmModal.classList.add('active');
+
+        function close(result){
+
+            confirmModal.classList.remove('active');
+
+            confirmOk.removeEventListener('click', okHandler);
+            confirmCancel.removeEventListener('click', cancelHandler);
+            confirmModal.removeEventListener('click', overlayHandler);
+
+            resolve(result);
+        }
+
+        function okHandler(){
+            close(true);
+        }
+
+        function cancelHandler(){
+            close(false);
+        }
+
+        function overlayHandler(e){
+            if(e.target === confirmModal){
+                close(false);
+            }
+        }
+
+        confirmOk.addEventListener('click', okHandler);
+        confirmCancel.addEventListener('click', cancelHandler);
+        confirmModal.addEventListener('click', overlayHandler);
+
+    });
+}
+
 async function clearArchive(){
 
-    if(!confirm('Очистить весь архив?')){
+    const confirmed = await showConfirm(
+        'Очистить архив',
+        'Все задачи будут удалены без возможности восстановления.'
+    );
+
+    if(!confirmed){
         return;
     }
 
@@ -946,3 +1025,4 @@ function formatDate(timestamp) {
 }
 
 loadTags();
+loadArchive();
