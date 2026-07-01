@@ -93,7 +93,7 @@
                 </div>
             </div>
             <div class = "task-section">
-                <h2>Мои задачи</h2>
+                <h2>Задачи</h2>
                 <ul id="task-list"></ul>
             </div>
         </section>
@@ -110,6 +110,17 @@
         <button id="clear-archive-btn">Очистить архив</button>
     </div>
 </aside>
+<div id="subtask-modal" class="modal-overlay">
+    <div class="modal">
+        <h3>Новая подзадача</h3>
+        <input id="subtask-input" type="text" placeholder="Введите название">
+        <div class="modal-actions">
+            <button id="subtask-cancel">Отмена</button>
+            <button id="subtask-save">Добавить</button>
+        </div>
+    </div>
+</div>
+<div id="toast-container"></div>
 <script src="app.js"></script>
 </body>
 </html>

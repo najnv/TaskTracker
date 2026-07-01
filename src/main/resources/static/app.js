@@ -12,10 +12,35 @@ const archiveOverlay = document.getElementById('archive-overlay');
 const closeArchiveBtn = document.getElementById('close-archive');
 const archiveList = document.getElementById('archive-list');
 const clearArchiveBtn = document.getElementById('clear-archive-btn');
+const modal = document.getElementById('subtask-modal');
+const input = document.getElementById('subtask-input');
+const cancelBtn = document.getElementById('subtask-cancel');
+const saveBtn = document.getElementById('subtask-save');
 
 let currentSortBy=`createdAt`;
 let currentOrder=`desc`;
-let isDraggingTagFromTask = false;
+let dragContext = null;
+let currentSubTaskTaskId = null;
+
+function showToast(message, type = 'error') {
+
+    const container = document.getElementById('toast-container');
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('hide');
+
+        setTimeout(() => {
+            toast.remove();
+        }, 250);
+
+    }, 3000);
+}
 
 function renderTask(task){
 
@@ -144,25 +169,33 @@ function renderTask(task){
         span.dataset.taskId = task.id;
 
         span.addEventListener('dragstart', (e) =>{
-            e.dataTransfer.setData('text/plain', JSON.stringify({
+            dragContext = {
+                type:'task-tag',
                 tagId: tag.id,
                 taskId: task.id
-            }));
+            };
+
+            e.dataTransfer.setData('text/plain', JSON.stringify(dragContext));
             e.dataTransfer.effectAllowed = 'move';
-            isDraggingTagFromTask = true;
-            trashZone.classList.add('active');
+
+            tagList.classList.add('drag-target-active');
         });
-        span.addEventListener('dragend', () =>{
-           isDraggingTagFromTask = false;
-           trashZone.classList.remove('active');
+
+        span.addEventListener('dragend', () => {
+            dragContext = null;
+            tagList.classList.remove('drag-target-active');
         });
+
         tags.appendChild(span);
     });
     li.appendChild(tags);
 
     li.addEventListener('dragover', (e) => {
-        if (isDraggingTagFromTask) return;
+        if (!dragContext) return;
+        if (dragContext.type !== 'global-tag') return;
+
         e.preventDefault();
+
         e.dataTransfer.dropEffect = 'move';
         li.style.border = '2px dashed #2c7da0';
     });
@@ -171,40 +204,69 @@ function renderTask(task){
         li.style.border = 'none';
     });
 
-    li.addEventListener('drop', async (e) =>{
-        if (isDraggingTagFromTask) return;
+    li.addEventListener('drop', async (e) => {
         e.preventDefault();
         li.style.border = 'none';
 
-        const tagId = e.dataTransfer.getData('text/plain');
-        if(!tagId) return;
+        let data;
 
-        const currentTagIds = task.tags.map(t=>t.id);
-
-        if (currentTagIds.includes(Number(tagId))){
-            alert('Этот тег уже привязан к задаче');
+        try {
+            data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        } catch {
             return;
         }
 
-        const newTagIds = [...currentTagIds, Number(tagId)];
+        if (data.type !== 'global-tag') return;
+
+        const tagId = Number(data.tagId);
+        if (!tagId) return;
+
+        const currentTagIds = (task.tags || []).map(t => t.id);
+
+        if (currentTagIds.includes(tagId)) {
+            showToast('Тег уже привязан к этой задаче');
+            return;
+        }
 
         await fetch(`${API_URL}/${task.id}/tags`, {
-            method:'PUT',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify(newTagIds)
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify([...currentTagIds, tagId])
         });
 
         await loadTasks();
     });
 
-    const subTitle = document.createElement('div');
-    subTitle.className = 'section-title';
+    const progressWrap = document.createElement('div');
+    progressWrap.className = 'task-progress';
+
+    const label = document.createElement('div');
+    label.className = 'task-progress-label';
+    label.textContent = 'Прогресс';
+
+    const bar = document.createElement('div');
+    bar.className = 'task-progress-bar';
+
+    const fill = document.createElement('div');
+    fill.className = 'task-progress-fill';
 
     const total = task.subtasks.length;
     const completed = task.subtasks.filter(s => s.done).length;
 
-    subTitle.textContent=`✔ Подзадачи (${completed}/${total})`;
-    li.appendChild(subTitle);
+    const percent = total ? (completed / total) * 100 : 0;
+    fill.style.width = `${percent}%`;
+
+    bar.appendChild(fill);
+
+    const counter = document.createElement('div');
+    counter.className = 'task-progress-counter';
+    counter.textContent = `${completed} из ${total}`;
+
+    progressWrap.appendChild(label);
+    progressWrap.appendChild(bar);
+    progressWrap.appendChild(counter);
+
+    li.appendChild(progressWrap);
 
     const subList = document.createElement('ul');
     subList.className = 'subtasks';
@@ -217,7 +279,7 @@ function renderTask(task){
         checkbox.className = 'subtask-checkbox';
         checkbox.checked = subTask.done;
 
-        checkbox.addEventListener('click', (e)=>{
+        checkbox.addEventListener('change', (e)=>{
            e.stopPropagation();
            toggleSubTask(task.id,subTask.id);
         });
@@ -245,7 +307,6 @@ function renderTask(task){
         };
         item.appendChild(deleteSubBtn);
 
-        item.onclick = () => toggleSubTask(task.id, subTask.id);
         subList.appendChild(item);
     });
     li.appendChild(subList);
@@ -253,7 +314,7 @@ function renderTask(task){
     const addSubButton = document.createElement('button');
     addSubButton.className = 'add-sub-button';
     addSubButton.textContent = 'Добавить подзадачу';
-    addSubButton.onclick = () => addSubTask(task.id);
+    addSubButton.onclick = () => openSubtaskModal(task.id);
     li.appendChild(addSubButton);
 
     return li;
@@ -276,7 +337,7 @@ form.addEventListener('submit', async (event) => {
     const title = titleInput.value.trim();
 
     if (!title){
-        alert ('Введите название задачи');
+        showToast ('Введите название задачи');
         return;
     }
 
@@ -296,7 +357,7 @@ async function deleteTask(id){
 
     if(!response.ok){
         const errorMessage = await response.text();
-        alert(`Не удалось удалить задачу: ${errorMessage}`);
+        showToast(`Не удалось удалить задачу: ${errorMessage}`);
         return;
     }
     await loadTasks();
@@ -311,7 +372,8 @@ async function saveTask(id, done) {
     const title = titleInput ? titleInput.value.trim() : '';
 
     if (!title) {
-        alert('Название задачи не должно быть пустым');
+        showToast('Название задачи не должно быть пустым');
+        await loadTasks();
         return;
     }
 
@@ -325,21 +387,43 @@ async function saveTask(id, done) {
     await loadTasks();
 }
 
-async function addSubTask(taskId){
-    const title = prompt('Название подзадачи');
+function openSubtaskModal(taskId){
+    currentSubTaskTaskId = taskId;
+    input.value = '';
+    modal.classList.add('active');
+    input.focus();
+}
 
-    if(!title || !title.trim()){
-        return;
-    }
+function closeSubtaskModal(){
+    modal.classList.remove('active');
+    currentSubTaskTaskId = null;
+}
 
-    await fetch(`${API_URL}/${taskId}/subtasks`,{
+cancelBtn.onclick = closeSubtaskModal;
+
+saveBtn.onclick = async () => {
+    const title = input.value.trim();
+
+    if(!title) return;
+
+    await fetch(`${API_URL}/${currentSubTaskTaskId}/subtasks`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({title: title.trim(), done:false})
+        body: JSON.stringify({title, done:false})
     });
 
-    loadTasks();
-}
+    closeSubtaskModal();
+    await loadTasks();
+};
+
+input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+        saveBtn.click();
+    }
+    if(e.key === 'Escape'){
+        closeSubtaskModal();
+    }
+});
 
 async function deleteSubTask(taskId, subTaskId){
     await fetch(`${API_URL}/${taskId}/subtasks/${subTaskId}`, {
@@ -383,6 +467,56 @@ updateSortButton();
 
 loadTasks();
 
+document.addEventListener('dragend', () => {
+    dragContext = null;
+    tagList.classList.remove('drag-target-active');
+    tagList.classList.remove('drag-over');
+});
+
+tagList.addEventListener('dragover', (e) => {
+    if (dragContext?.type === 'task-tag') {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        tagList.classList.add('drag-over');
+    } else {
+        e.dataTransfer.dropEffect = 'none';
+    }
+});
+
+tagList.addEventListener('dragenter', () => {
+    if (dragContext?.type === 'task-tag') {
+        tagList.classList.add('drag-over');
+    }
+});
+
+tagList.addEventListener('dragleave', (e) => {
+    if (!tagList.contains(e.relatedTarget)) {
+        tagList.classList.remove('drag-over');
+    }
+});
+
+tagList.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    tagList.classList.remove('drag-over');
+
+    const raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
+
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch {
+        return;
+    }
+
+    if (data.type !== 'task-tag') return;
+
+    await removeTagFromTask(data.taskId, data.tagId);
+    await loadTasks();
+
+    dragContext = null;
+});
+
 async function loadTags(){
     const response = await fetch('/api/tags');
     const tags = await response.json();
@@ -393,8 +527,15 @@ async function loadTags(){
         li.draggable = true;
 
         li.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', tag.id);
+            const payload = {
+                type: 'global-tag',
+                tagId: tag.id
+            };
+
+            e.dataTransfer.setData('text/plain', JSON.stringify(payload));
             e.dataTransfer.effectAllowed = 'move';
+
+            dragContext = payload;
         })
 
         const nameSpan=document.createElement('span');
@@ -433,24 +574,36 @@ async function loadTags(){
 async function createTag(){
     const name = newTagInput.value.trim();
     if(!name) {
-        alert('Введите название тега');
+        showToast('Введите название тега');
         return;
     }
-    await fetch('/api/tags',{
+    const response = await fetch('/api/tags',{
         method: 'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({name})
     });
+
+    if(!response.ok){
+        const error = await response.json();
+        showToast(error.message || 'Не удалось создать тег');
+        return;
+    }
+
     newTagInput.value = '';
     await loadTags();
 }
 
 async function updateTag(id, name) {
-    await fetch(`/api/tags/${id}`, {
+
+    const response = await fetch(`/api/tags/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
     });
+    if(!response.ok){
+        const error = await response.json();
+        showToast(error.message|| "Не удалось изменить название");
+    }
 }
 
 function  enableTagEditing(span, tagId){
@@ -531,37 +684,6 @@ async function removeTagFromTask(taskId, tagId) {
         throw new Error(`Ошибка при отвязке тега: ${response.status}`)
     }
 }
-
-const trashZone = document.getElementById('trash-zone');
-
-
-trashZone.addEventListener('dragover', (e) =>{
-   e.preventDefault();
-   e.dataTransfer.dropEffect = 'move';
-});
-
-trashZone.addEventListener('drop', async (e) =>{
-   e.preventDefault();
-
-   const rawData = e.dataTransfer.getData('text/plain');
-   if (!rawData) return;
-
-   try{
-       const data = JSON.parse(rawData);
-       if (!data.tagId || !data.taskId) return;
-
-       await removeTagFromTask(data.taskId, data.tagId);
-       await loadTasks();
-
-   }
-   catch (error){
-       console.error('Ошибка при отвязке тега', error);
-       alert('Не удалось отвязать тег');
-   }
-
-    isDraggingTagFromTask = false;
-    trashZone.classList.remove('active');
-});
 
 async function openArchive(){
     await loadArchive();
@@ -722,7 +844,7 @@ async function changeRetention(taskId, retention){
     });
 
     if(!response.ok){
-        alert('Не удалось изменить срок хранения');
+        showToast('Не удалось изменить срок хранения');
         return;
     }
     await loadArchive();
@@ -736,7 +858,7 @@ async function restoreTask(taskId){
 
     if(!response.ok){
         const errorMessage = await response.text();
-        alert(`Не удалось восстановить задачу:  ${errorMessage}`);
+        showToast(`Не удалось восстановить задачу:  ${errorMessage}`);
         return;
     }
     await loadArchive();
@@ -751,7 +873,7 @@ async function deleteArchivedTask(taskId){
 
     if(!response.ok){
         const errorMessage = await response.text();
-        alert(`Не удалось удалить задачу: ${errorMessage}`);
+        showToast(`Не удалось удалить задачу: ${errorMessage}`);
         return;
     }
 
@@ -769,7 +891,7 @@ async function clearArchive(){
     })
 
     if(!response.ok){
-        alert('Не удалось очистить архив');
+        showToast('Не удалось очистить архив');
         return;
     }
 

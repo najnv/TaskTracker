@@ -34,6 +34,9 @@ public class TagController {
     @PostMapping
     public Tag createTag(@Valid @RequestBody Tag tag){
         tag.setId(null);
+        if(tagRepository.existsByNameIgnoreCase(tag.getName())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Тэг с таким названием уже существует");
+        }
         return tagRepository.save(tag);
     }
 
@@ -52,11 +55,12 @@ public class TagController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Tag> updateTag (@PathVariable Long id, @Valid @RequestBody Tag updatedTag){
-        return tagRepository.findById(id)
-                .map(tag->{
-                    tag.setName(updatedTag.getName());
-                    return ResponseEntity.ok(tagRepository.save(tag));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Тег с id " + id + " не найден"));
+        if(tagRepository.existsByNameIgnoreCaseAndIdNot(updatedTag.getName(), id)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Тег с таким названием уже существует");
+        }
+        tag.setName(updatedTag.getName());
+        return ResponseEntity.ok(tagRepository.save(tag));
     }
 }

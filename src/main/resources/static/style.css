@@ -1061,9 +1061,6 @@ body{
 .tag-name{
     flex:1;
 }
-
-
-
 /* ==========================================================
    CONTENT
 ========================================================== */
@@ -1087,8 +1084,6 @@ body{
     flex-shrink:0;
     cursor:pointer;
 }
-
-
 
 .task-actions{
     display:flex;
@@ -1160,11 +1155,11 @@ body{
     resize:none;
     overflow:hidden;
     padding:6px 8px;
-    font-family:Inter,"Segoe UI",sans-serif;
     font-size:20px;
     font-weight:500;
-    color:#2f3542;
     line-height:1.45;
+    font-family: inherit;
+    color:#2f3542;
     border-radius:10px;
     transition:.2s;
     cursor:text;
@@ -1216,7 +1211,6 @@ body{
     font-size:13px;
     font-weight:700;
     color:#68707d;
-    text-transform:uppercase;
     letter-spacing:.8px;
 }
 
@@ -1345,6 +1339,11 @@ body{
     color:#2563eb;
 }
 
+.subtask-title{
+    flex:1;
+    pointer-events:none;
+}
+
 .subtask-checkbox{
     width:18px;
     height:18px;
@@ -1406,6 +1405,17 @@ body{
     box-shadow:0 0 0 4px rgba(79,124,255,.12);
 }
 
+#tag-list.drag-over {
+    background: #eef5ff;
+    border: 2px dashed #4f7cff;
+    border-radius: 14px;
+    transition: .15s;
+}
+
+#tag-list.drag-target-active {
+    outline: 2px solid rgba(79,124,255,.2);
+}
+
 .add-tag-button{
     width:100%;
     margin-top:14px;
@@ -1428,4 +1438,382 @@ body{
 
 .add-tag-button:active{
     transform:scale(.98);
+}
+/* ==========================================================
+   ARCHIVE
+========================================================== */
+.archive-btn{
+    padding:12px 22px;
+    border:none;
+    border-radius: 12px;
+    background:#2c7da0;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    transition:.25s;
+}
+
+.archive-btn:hover{
+    transform: translateY(-2px);
+    background:#246885;
+}
+
+#archive-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.35);
+    backdrop-filter: blur(2px);
+    opacity:0;
+    visibility:hidden;
+    transition:.3s;
+    z-index:999;
+}
+
+#archive-overlay.active{
+    opacity:1;
+    visibility: visible;
+}
+
+#archive-panel{
+    position: fixed;
+    top:0;
+    right:0;
+    width: 430px;
+    height: 100%;
+    background:white;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition:.35s;
+    box-shadow: -10px 0 30px rgba(0,0,0,.18);
+    z-index: 1000;
+}
+
+#archive-panel.active{
+    transform: translateX(0);
+}
+
+.archive-header{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    padding:24px;
+    border-bottom: 1px solid #eee;
+}
+
+#close-archive{
+    border:none;
+    background: none;
+    font-size: 24px;
+    cursor:pointer;
+}
+
+#archive-list{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+}
+
+.archive-footer{
+    padding:20px;
+    border-top:1px solid #eee;
+}
+
+#clear-archive-btn{
+    width: 100%;
+    padding:14px;
+    border:none;
+    border-radius: 10px;
+    background:#dc3545;
+    color:white;
+    cursor: pointer;
+    font-size:15px;
+}
+
+#clear-archive-btn:hover{
+    background: #b91d2c;
+}
+
+.archive-card{
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+    border: 1px solid #e6e6e6;
+    transition: .2s;
+}
+
+.archive-card:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+
+.archive-card h3{
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.archive-card p{
+    margin: 6px 0;
+    color:#666;
+    font-size:14px;
+}
+
+.archive-card label{
+    display:block;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.archive-card select{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #e6e6e6;
+    background:#fff;
+    outline:none;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.archive-card select:focus{
+    border-color:#2c7da0;
+}
+
+.archive-buttons{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+}
+
+.archive-buttons button{
+    flex:1;
+    border:none;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.archive-buttons button:first-child:hover{
+    background:#246885;
+}
+
+.archive-buttons button:last-child:hover{
+    background:#b91d2c;
+}
+
+.archive-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom: 14px;
+}
+
+.archive-tag{
+    background:#f1f3f5;
+    color:#2c7da0;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:500;
+    border: 1px solid #e6e6e6;
+}
+
+.archive-subtasks{
+    margin:10px 0 16px;
+    padding-left:18px;
+}
+
+.archive-subtasks li{
+    margin-bottom:6px;
+    color:#444;
+}
+
+.archive-subtasks li.done{
+    color:#28a745;
+    text-decoration: line-through;
+}
+
+.archive-exact-date{
+    display:block;
+    margin-top: 4px;
+    color:#8b8b8b;
+    font-size: 12px;
+    font-style:italic;
+}
+/* ==========================================================
+   PROGRESS BAR
+========================================================== */
+.task-progress{
+    margin-top:18px;
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    white-space:nowrap;
+}
+
+.task-progress-label{
+    font-size:13px;
+    font-weight:700;
+    color:#68707d;
+    letter-spacing:.4px;
+    flex-shrink:0;
+}
+
+.task-progress-bar{
+    flex:1;
+    height:7px;
+    background:#eef2f7;
+    border-radius:999px;
+    overflow:hidden;
+    min-width:140px;
+}
+
+.task-progress-fill{
+    height:100%;
+    width:0;
+    background:linear-gradient(90deg, #4f7cff, #6ea8ff);
+    border-radius:999px;
+    transition:width .3s ease;
+}
+
+.task-progress-counter{
+    font-size:13px;
+    font-weight:600;
+    color:#6b7280;
+    flex-shrink:0;
+}
+
+/* ==========================================================
+   MODAL
+========================================================== */
+.modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.4);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:2000;
+}
+
+.modal-overlay.active{
+    display:flex;
+}
+
+.modal{
+    width:360px;
+    background:white;
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+
+.modal h3{
+    margin-bottom:14px;
+    font-size:18px;
+    font-weight:700;
+}
+
+.modal input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid #dce3ee;
+    border-radius:10px;
+    font-size:14px;
+    outline:none;
+}
+
+.modal input:focus{
+    border-color:#4f7cff;
+    box-shadow:0 0 0 3px rgba(79,124,255,.15);
+}
+
+.modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:16px;
+}
+
+.modal-actions button{
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+#subtask-cancel{
+    background:#eef2f7;
+}
+
+#subtask-save{
+    background:#4f7cff;
+    color:white;
+}
+/* ==========================================================
+   TOAST NOTIFICATIONS
+========================================================== */
+#toast-container{
+    position:fixed;
+    top:24px;
+    right:24px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    z-index:9999;
+}
+
+.toast{
+    min-width:300px;
+    max-width:420px;
+    padding:16px 18px;
+    border-radius:14px;
+    color:white;
+    font-size:15px;
+    font-weight:500;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+    animation:toastIn .25s ease;
+}
+
+.toast.error{
+    background:#ef4444;
+}
+
+.toast.success{
+    background:#22c55e;
+}
+
+.toast.info{
+    background:#4f7cff;
+}
+
+.toast.hide{
+    animation:toastOut .25s ease forwards;
+}
+
+@keyframes toastIn{
+    from{
+        opacity:0;
+        transform:translateX(60px);
+    }
+    to{
+        opacity:1;
+        transform:translateX(0);
+    }
+}
+
+@keyframes toastOut{
+    from{
+        opacity:1;
+        transform:translateX(0);
+    }
+    to{
+        opacity:0;
+        transform:translateX(60px);
+    }
 }
