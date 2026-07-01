@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="container">
+<!--<main class="container">
     <header class = "top-bar">
         <div class="logo">
             <h1>Task Tracker</h1>
@@ -51,7 +51,65 @@
     <div class="archive-footer">
         <button id="clear-archive-btn"> Очистить архив </button>
     </div>
+</aside>-->
+<div class = "app">
+    <header class = "top-bar">
+        <div class = "logo">
+            <h1>Task Tracker</h1>
+            <span>Управление задачами</span>
+        </div>
+        <button id = "archive-btn" class = "archive-btn">Архив</button>
+    </header>
+    <main class = "workspace">
+        <aside class = "sidebar">
+            <div class = "panel">
+                <div class = "panel-header">
+                    <h2>Теги</h2>
+                    <span class = "panel-description">Перетащите тег на карточку задачи</span>
+                </div>
+                <div class = "tag-form">
+                    <input id = "new-tag-input" class ="tag-input" type = "text" placeholder="Введите название тега">
+                    <button id = "add-tag-btn" class="add-tag-button" type = "button">Добавить</button>
+                </div>
+                <ul id="tag-list"></ul>
+            </div>
+        </aside>
+        <section class = "content">
+            <div class = "new-task-card">
+                <h2>Новая задача</h2>
+                <form id="task-form">
+                <input id="task-title" type="text" placeholder="Введите название задачи">
+                <button type = "submit">Добавить</button>
+                </form>
+            </div>
+            <div class = "toolbar">
+                <div class = "sort-controls">
+                    <label>Сортировка</label>
+                    <select id="sortBy">
+                        <option value="createdAt">По дате</option>
+                        <option value="title">По алфавиту</option>
+                    </select>
+                    <button id="sortToggle" type="button"></button>
+                </div>
+            </div>
+            <div class = "task-section">
+                <h2>Мои задачи</h2>
+                <ul id="task-list"></ul>
+            </div>
+        </section>
+    </main>
+</div>
+<div id="archive-overlay"></div>
+<aside id="archive-panel">
+    <div class="archive-header">
+        <h2>Архив задач</h2>
+        <button id="close-archive">✕</button>
+    </div>
+    <div id="archive-list"></div>
+    <div class = "archive-footer">
+        <button id="clear-archive-btn">Очистить архив</button>
+    </div>
 </aside>
-<script src="app.js"> </script>
+<script src="app.js"></script>
 </body>
 </html>

@@ -30,50 +30,105 @@ function renderTask(task){
     const controls = document.createElement(`div`);
     controls.className=`task-controls`;
 
+    const header = document.createElement('div');
+    header.className = 'task-header';
+    controls.appendChild(header);
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = task.done;
-    checkbox.addEventListener('change', function(){
-        const taskId = this.closest('li').dataset.id;
-        const done = this.checked;
-        saveTask(taskId,done);
-    })
-    controls.appendChild(checkbox);
 
-    const titleInput = document.createElement('input');
-    titleInput.type = 'text';
+    checkbox.addEventListener('change', function () {
+        const taskId = this.closest('li').dataset.id;
+        saveTask(taskId, this.checked);
+    });
+
+    header.appendChild(checkbox);
+
+    const right = document.createElement('div');
+    right.className = 'task-main';
+
+    const titleInput = document.createElement('textarea');
+    titleInput.className = 'task-title-input';
+
+    console.log(task);
+    console.log(task.title);
+
     titleInput.value = task.title;
+    titleInput.placeholder = 'Название задачи';
     titleInput.id = `task-title-${task.id}`;
+
     if (task.done) {
         titleInput.classList.add('done');
     }
-    controls.appendChild(titleInput);
+
+    titleInput.rows = 1;
+
+    titleInput.addEventListener("input", () => {
+        titleInput.style.height = "auto";
+        titleInput.style.height = titleInput.scrollHeight + "px";
+    });
+
+    titleInput.addEventListener('blur', () => {
+        saveTask(task.id, checkbox.checked);
+    });
+
+    titleInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            titleInput.blur();
+        }
+    });
+
+    right.appendChild(titleInput);
+
+    requestAnimationFrame(() => {
+        titleInput.style.height = "auto";
+        titleInput.style.height = titleInput.scrollHeight + "px";
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'task-actions';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Удалить';
+    deleteBtn.onclick = () => deleteTask(task.id);
+
+    actions.appendChild(deleteBtn);
+
+    right.appendChild(actions);
+
+    header.appendChild(right);
+
+    li.appendChild(controls);
+
 
     const dateSpan = document.createElement('span');
     dateSpan.className = 'task-date';
     dateSpan.textContent = task.createdAt || '';
-    controls.appendChild(dateSpan);
 
-    const saveBtn = document.createElement(`button`);
-    saveBtn.textContent = `Сохранить`;
-    saveBtn.addEventListener('click', function(){
-        const li = this.closest('li');
-        const taskId = li.dataset.id;
-        const checkbox = li.querySelector('input[type="checkbox"]');
-        const done = checkbox.checked;
-        saveTask(taskId, done);
-    });
-    controls.appendChild(saveBtn);
+    const meta = document.createElement('div');
+    meta.className='task-meta';
 
-    const deleteBtn = document.createElement(`button`);
-    deleteBtn.textContent = `Удалить`;
-    deleteBtn.onclick = () => deleteTask(task.id);
-    controls.appendChild(deleteBtn);
+    meta.appendChild(dateSpan);
 
-    li.appendChild(controls);
+    li.appendChild(meta);
+
+    const tagsTitle = document.createElement('div');
+    tagsTitle.className = 'section-title';
+    tagsTitle.textContent = 'Теги';
+    li.appendChild(tagsTitle);
 
     const tags = document.createElement('div');
     tags.className='tags';
+
+    if(!task.tags || task.tags.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'empty-tags';
+        empty.textContent = 'Перетащите сюда тег из левой панели';
+        tags.appendChild(empty);
+    }
+
     const sortedTags = [...(task.tags || [])].sort((a,b) => {
         const nameA = (a.name || a).toLowerCase();
         const nameB = (b.name || b).toLowerCase();
@@ -142,17 +197,39 @@ function renderTask(task){
         await loadTasks();
     });
 
+    const subTitle = document.createElement('div');
+    subTitle.className = 'section-title';
+
+    const total = task.subtasks.length;
+    const completed = task.subtasks.filter(s => s.done).length;
+
+    subTitle.textContent=`✔ Подзадачи (${completed}/${total})`;
+    li.appendChild(subTitle);
+
     const subList = document.createElement('ul');
     subList.className = 'subtasks';
     (task.subtasks || []).forEach(subTask=>{
 
         const item = document.createElement('li');
 
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'subtask-checkbox';
+        checkbox.checked = subTask.done;
+
+        checkbox.addEventListener('click', (e)=>{
+           e.stopPropagation();
+           toggleSubTask(task.id,subTask.id);
+        });
+
+        item.appendChild(checkbox);
+
         if (subTask.done){
             item.classList.add('done')
         }
 
         const textSpan = document.createElement('span');
+        textSpan.className = 'subtask-title';
         textSpan.textContent = subTask.title;
         if(subTask.done){
             textSpan.classList.add('done');
@@ -282,15 +359,27 @@ async function toggleSubTask(taskId, subTaskId){
 const sortBySelect = document.getElementById(`sortBy`);
 const sortToggleBtn=document.getElementById(`sortToggle`);
 
+function updateSortButton(){
+    if(currentOrder === 'asc'){
+        sortToggleBtn.textContent = (currentSortBy === 'createdAt' ? '▲ Старые' : '▲ А→Я');
+    } else {
+        sortToggleBtn.textContent = (currentSortBy === 'createdAt' ? '▼ Новые' : '▼ Я→А');
+    }
+}
+
 sortBySelect.addEventListener(`change`, () => {
     currentSortBy=sortBySelect.value;
+    updateSortButton();
     loadTasks();
 })
 
 sortToggleBtn.addEventListener(`click`, () => {
     currentOrder = currentOrder === `desc` ? `asc` : `desc`;
+    updateSortButton();
     loadTasks();
 })
+
+updateSortButton();
 
 loadTasks();
 
@@ -310,16 +399,33 @@ async function loadTags(){
 
         const nameSpan=document.createElement('span');
         nameSpan.className='tag-name';
-        nameSpan.textContent=tag.name;
+        nameSpan.title='Двойной клик для редактирования';
+        nameSpan.textContent='#' + tag.name;
         nameSpan.addEventListener('dblclick', () => enableTagEditing(nameSpan,tag.id))
+
+        const actions = document.createElement('div');
+        actions.className = 'tag-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className='tag-edit-btn';
+        editBtn.innerHTML='✎';
+
+        editBtn.onclick = (e) =>{
+            e.stopPropagation();
+            enableTagEditing(nameSpan,tag.id);
+        }
+
+        actions.appendChild(editBtn);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className='tag-delete-btn';
         deleteBtn.textContent='✕';
         deleteBtn.onclick = () => deleteTag(tag.id);
 
+        actions.appendChild(deleteBtn);
+
         li.appendChild(nameSpan);
-        li.appendChild(deleteBtn);
+        li.appendChild(actions);
         tagList.appendChild(li);
     });
 }
@@ -348,34 +454,53 @@ async function updateTag(id, name) {
 }
 
 function  enableTagEditing(span, tagId){
-    const currentName = span.textContent;
+
+    const currentName = span.textContent.replace(/^#/,"");
+
     const input = document.createElement('input');
     input.type = 'text';
+    input.className = 'tag-name-input';
     input.value = currentName;
-    input.className = 'tag-name editing';
+
     span.replaceWith(input);
+
     input.focus();
     input.select();
 
-    const save = async () => {
+    async function save(){
+
         const newName = input.value.trim();
-        if (newName && newName !== currentName) {
-            await updateTag(tagId, newName);
+
+        if(newName === ""){
+            input.replaceWith(span);
+            return;
         }
+
+        if(newName === currentName){
+            input.replaceWith(span);
+            return;
+        }
+
+        await updateTag(tagId, newName);
         await loadTags();
-    };
+    }
+
+    function cansel(){
+        input.replaceWith(span);
+    }
 
     input.addEventListener('blur', save);
+
     input.addEventListener('keydown', (e) => {
+
         if (e.key === 'Enter') {
+            e.preventDefault();
             input.blur();
-        } else if (e.key === 'Escape') {
-            const span = document.createElement('span');
-            span.className = 'tag-name';
-            span.textContent = currentName;
-            span.addEventListener('dblclick', () => enableTagEditing(span, tagId));
-            input.replaceWith(span);
-            loadTags();
+        }
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            cansel();
         }
     });
 }
